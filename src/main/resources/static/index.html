@@ -1,0 +1,2611 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShopFlow KH - Multi-Tenant Retail Inventory & POS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Kantumruy Pro for Khmer -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- html5-qrcode for Webcam Barcode Scanning -->
+    <script
+      src="https://unpkg.com/html5-qrcode"
+      type="text/javascript"
+    ></script>
+
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: "#eff6ff",
+                100: "#dbeafe",
+                500: "#1d4ed8",
+                600: "#1e40af",
+                700: "#1d3557",
+                800: "#0f172a",
+              },
+              khmerRed: "#D91F26",
+              khmerBlue: "#032EA1",
+            },
+            fontFamily: {
+              sans: ["Inter", "Kantumruy Pro", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 9999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      .scanner-laser {
+        position: absolute;
+        top: 50%;
+        left: 8%;
+        right: 8%;
+        height: 2px;
+        background: #ef4444;
+        box-shadow: 0 0 10px #ef4444;
+        animation: laserScan 2s infinite ease-in-out;
+      }
+      @keyframes laserScan {
+        0%,
+        100% {
+          transform: translateY(-45px);
+        }
+        50% {
+          transform: translateY(45px);
+        }
+      }
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #printableReceipt,
+        #printableReceipt * {
+          visibility: visible;
+        }
+        #printableReceipt {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          margin: 0;
+          padding: 10px;
+          background: white;
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-50 text-slate-800 antialiased font-sans flex h-screen overflow-hidden"
+  >
+    <!-- ================= SIDEBAR ================= -->
+    <aside
+      class="w-64 bg-[#0d1b2a] text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 select-none z-20"
+    >
+      <!-- Brand / Store Info -->
+      <div
+        class="p-4 flex items-center justify-between border-b border-slate-800/80"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-sky-500 flex items-center justify-center shadow-lg text-white font-bold text-lg"
+          >
+            <i data-lucide="store" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-white text-base tracking-tight"
+                >ShopFlow</span
+              >
+              <span
+                class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-khmerRed text-white tracking-widest"
+                >KH</span
+              >
+            </div>
+            <p
+              class="text-xs text-slate-400 truncate max-w-[130px]"
+              id="sideShopName"
+            >
+              SC Retail & POS
+            </p>
+          </div>
+        </div>
+        <div
+          id="dbStatusBadge"
+          title="Spring Boot Backend Status"
+          class="p-1.5 rounded-lg bg-slate-800/80 flex items-center justify-center"
+        >
+          <span
+            class="w-2.5 h-2.5 rounded-full bg-emerald-400"
+            id="dbStatusDot"
+          ></span>
+        </div>
+      </div>
+
+      <!-- Active User & Shop Multi-tenant Tag -->
+      <div
+        class="px-4 py-2.5 bg-[#08121d] border-b border-slate-800 flex items-center justify-between text-[11px]"
+      >
+        <div class="flex items-center gap-2 truncate">
+          <div
+            class="w-6 h-6 rounded-full bg-blue-900 text-blue-300 font-bold flex items-center justify-center text-[10px]"
+            id="userAvatarText"
+          >
+            A
+          </div>
+          <div class="truncate">
+            <div
+              class="font-semibold text-slate-200 truncate"
+              id="sideUserEmail"
+            >
+              admin@shopflow.kh
+            </div>
+            <div class="text-[10px] text-emerald-400 flex items-center gap-1">
+              <span id="sideUserRoleTag">Owner</span>
+              <span class="text-slate-600">•</span>
+              <span class="font-mono text-slate-500 truncate"
+                >Connected API</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+        <div>
+          <p
+            class="px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2"
+            data-i18n="nav_main"
+          >
+            MAIN
+          </p>
+          <nav class="space-y-1">
+            <button
+              onclick="navigateTo('dashboard')"
+              id="nav-dashboard"
+              class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white bg-blue-600 shadow-sm transition"
+            >
+              <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+              <span data-i18n="menu_dashboard">Dashboard</span>
+            </button>
+            <button
+              onclick="navigateTo('pos')"
+              id="nav-pos"
+              class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition"
+            >
+              <div class="flex items-center gap-3">
+                <i
+                  data-lucide="shopping-bag"
+                  class="w-4 h-4 text-emerald-400"
+                ></i>
+                <span data-i18n="menu_pos">POS Terminal</span>
+              </div>
+              <span
+                class="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                >Sell</span
+              >
+            </button>
+            <button
+              onclick="navigateTo('inventory')"
+              id="nav-inventory"
+              class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition"
+            >
+              <div class="flex items-center gap-3">
+                <i data-lucide="boxes" class="w-4 h-4"></i>
+                <span data-i18n="menu_inventory">Stock Management</span>
+              </div>
+              <span
+                id="lowStockBadge"
+                class="hidden px-1.5 py-0.2 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300"
+                >0</span
+              >
+            </button>
+            <button
+              onclick="navigateTo('scanner')"
+              id="nav-scanner"
+              class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition"
+            >
+              <i data-lucide="scan-barcode" class="w-4 h-4 text-sky-400"></i>
+              <span data-i18n="menu_scanner">Barcode Scanner</span>
+            </button>
+          </nav>
+        </div>
+
+        <div>
+          <p
+            class="px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2"
+            data-i18n="nav_records"
+          >
+            RECORDS & BACKEND
+          </p>
+          <nav class="space-y-1">
+            <button
+              onclick="navigateTo('reports')"
+              id="nav-reports"
+              class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition"
+            >
+              <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+              <span data-i18n="menu_reports">Daily Closing & Sales</span>
+            </button>
+            <button
+              onclick="navigateTo('settings')"
+              id="nav-settings"
+              class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition"
+            >
+              <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+              <span data-i18n="menu_settings">Exchange Rate & Settings</span>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      <!-- Language Selector & Currency Footer -->
+      <div class="p-3 border-t border-slate-800 bg-[#08121d] space-y-3">
+        <div
+          class="flex items-center justify-between bg-slate-900 rounded-lg p-1 border border-slate-800 text-xs"
+        >
+          <button
+            id="lang-en"
+            onclick="setLanguage('en')"
+            class="flex-1 py-1 px-2 rounded font-medium text-center transition bg-blue-600 text-white"
+          >
+            English
+          </button>
+          <button
+            id="lang-km"
+            onclick="setLanguage('km')"
+            class="flex-1 py-1 px-2 rounded font-medium text-center transition text-slate-400 hover:text-white"
+          >
+            ភាសាខ្មែរ
+          </button>
+        </div>
+
+        <div
+          class="flex items-center justify-between text-xs text-slate-400 px-1"
+        >
+          <span
+            >Rate: 1 USD =
+            <strong class="text-white" id="navExchangeRate">4,100</strong>
+            ៛</span
+          >
+        </div>
+      </div>
+    </aside>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50">
+      <!-- Top Header Bar -->
+      <header
+        class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between flex-shrink-0 z-10 shadow-xs"
+      >
+        <div class="flex items-center gap-3">
+          <h1
+            class="text-lg font-bold text-slate-900 tracking-tight"
+            id="pageTitle"
+          >
+            Dashboard
+          </h1>
+          <div
+            class="hidden sm:flex items-center gap-2 text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200"
+          >
+            <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span id="currentDateStr">--</span>
+          </div>
+        </div>
+
+        <!-- Quick Actions Header -->
+        <div class="flex items-center gap-3">
+          <div class="relative hidden md:block">
+            <i
+              data-lucide="search"
+              class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            ></i>
+            <input
+              type="text"
+              id="quickGlobalSearch"
+              oninput="handleGlobalSearch(this.value)"
+              placeholder="Quick barcode or SKU..."
+              class="w-52 pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50/50"
+            />
+          </div>
+
+          <button
+            id="headerBtnAddProduct"
+            onclick="openAddProductModal()"
+            class="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-medium px-3.5 py-2 rounded-lg shadow-sm transition"
+          >
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span data-i18n="btn_add_product">New Product</span>
+          </button>
+
+          <button
+            onclick="navigateTo('pos')"
+            class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-medium px-3.5 py-2 rounded-lg shadow-sm transition"
+          >
+            <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+            <span data-i18n="btn_open_pos">Cashier POS</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Workspace -->
+      <div
+        class="flex-1 overflow-y-auto p-6 space-y-6"
+        id="mainContentContainer"
+      >
+        <!-- ================= SECTION: DASHBOARD ================= -->
+        <div id="view-dashboard" class="view-panel space-y-6">
+          <div
+            class="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-2xl p-5 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm border border-blue-800"
+          >
+            <div class="flex items-center gap-4">
+              <div
+                class="p-3 bg-white/10 rounded-xl backdrop-blur-sm border border-white/15"
+              >
+                <i
+                  data-lucide="calendar-check-2"
+                  class="w-6 h-6 text-sky-300"
+                ></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3
+                    class="font-bold text-base tracking-tight"
+                    data-i18n="daily_closing_title"
+                  >
+                    Spring Boot Live Connected
+                  </h3>
+                  <span
+                    class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
+                  >
+                    ● REST API Ready
+                  </span>
+                </div>
+                <p class="text-xs text-blue-200 mt-0.5">
+                  Synchronizing inventory, products, and sales transactions
+                  seamlessly.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 self-end md:self-auto">
+              <button
+                onclick="fetchRemoteOrLocalData()"
+                class="px-4 py-2 bg-white text-blue-900 hover:bg-blue-50 font-semibold text-xs rounded-lg shadow transition active:scale-95 flex items-center gap-1.5"
+              >
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Refresh Data</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 Metric Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div
+              class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between hover:border-slate-300 transition"
+            >
+              <div
+                class="flex items-center justify-between text-slate-500 text-xs font-medium"
+              >
+                <span data-i18n="card_total_stock">Total Stock</span>
+                <div
+                  class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"
+                >
+                  <i data-lucide="layers" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <div class="mt-3">
+                <div
+                  class="text-2xl font-bold text-slate-900"
+                  id="metricTotalStock"
+                >
+                  0
+                </div>
+                <p class="text-xs text-slate-500 mt-1">
+                  <span id="metricVariantsCount">0</span>
+                  <span data-i18n="card_variants">variants active</span>
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between hover:border-slate-300 transition"
+            >
+              <div
+                class="flex items-center justify-between text-slate-500 text-xs font-medium"
+              >
+                <span data-i18n="card_total_products">Total Products</span>
+                <div
+                  class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center"
+                >
+                  <i data-lucide="package" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <div class="mt-3">
+                <div
+                  class="text-2xl font-bold text-slate-900"
+                  id="metricTotalProducts"
+                >
+                  0
+                </div>
+                <p
+                  class="text-xs text-slate-500 mt-1"
+                  data-i18n="card_in_catalog"
+                >
+                  Items in catalog
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between hover:border-slate-300 transition"
+            >
+              <div
+                class="flex items-center justify-between text-slate-500 text-xs font-medium"
+              >
+                <span data-i18n="card_today_sales">Today's Sales</span>
+                <div
+                  class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"
+                >
+                  <i data-lucide="trending-up" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <div class="mt-3">
+                <div
+                  class="text-2xl font-bold text-slate-900"
+                  id="metricTodaySalesUSD"
+                >
+                  $0.00
+                </div>
+                <p
+                  class="text-xs text-emerald-600 font-medium mt-1"
+                  id="metricTodaySalesKHR"
+                >
+                  0 ៛
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between hover:border-slate-300 transition"
+            >
+              <div
+                class="flex items-center justify-between text-slate-500 text-xs font-medium"
+              >
+                <span data-i18n="card_low_stock">Low Stock Items</span>
+                <div
+                  class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center"
+                >
+                  <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <div class="mt-3 flex items-baseline justify-between">
+                <div
+                  class="text-2xl font-bold text-amber-600"
+                  id="metricLowStockCount"
+                >
+                  0
+                </div>
+                <span
+                  class="text-xs text-rose-500 font-medium"
+                  id="metricOutOfStockCount"
+                  >0 out of stock</span
+                >
+              </div>
+              <p
+                class="text-xs text-slate-500 mt-1"
+                data-i18n="card_attention_req"
+              >
+                Requires restocking
+              </p>
+            </div>
+          </div>
+
+          <!-- Stock Inventory Section Header & Tabs -->
+          <div
+            class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden"
+          >
+            <div
+              class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            >
+              <div>
+                <h2
+                  class="font-bold text-slate-900 text-base"
+                  data-i18n="stock_inventory_title"
+                >
+                  Stock Inventory
+                </h2>
+                <p class="text-xs text-slate-500" id="stockShowingCount">
+                  Showing 0 of 0 stock items
+                </p>
+              </div>
+
+              <div
+                class="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl text-xs font-medium"
+              >
+                <button
+                  onclick="setStockFilter('all')"
+                  id="tab-all"
+                  class="stock-tab-btn px-3 py-1.5 rounded-lg bg-white shadow-xs text-blue-700 font-semibold transition"
+                >
+                  <span data-i18n="tab_todays_stock">Today's Stock</span> (<span
+                    id="tabCountAll"
+                    >0</span
+                  >)
+                </button>
+                <button
+                  onclick="setStockFilter('low')"
+                  id="tab-low"
+                  class="stock-tab-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition"
+                >
+                  <span data-i18n="tab_low_stock">Low Stock</span> (<span
+                    id="tabCountLow"
+                    >0</span
+                  >)
+                </button>
+                <button
+                  onclick="setStockFilter('out')"
+                  id="tab-out"
+                  class="stock-tab-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition"
+                >
+                  <span data-i18n="tab_out_of_stock">Out of Stock</span> (<span
+                    id="tabCountOut"
+                    >0</span
+                  >)
+                </button>
+              </div>
+            </div>
+
+            <!-- Table Search & Filter Sub-bar -->
+            <div
+              class="px-5 py-3 bg-slate-50/70 border-b border-slate-200/80 flex items-center justify-between gap-4"
+            >
+              <div class="relative flex-1 max-w-md">
+                <i
+                  data-lucide="search"
+                  class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                ></i>
+                <input
+                  type="text"
+                  id="inventorySearchInput"
+                  oninput="renderInventoryTable()"
+                  placeholder="Search product, SKU, or barcode..."
+                  class="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                />
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  id="btnBulkReceive"
+                  onclick="openReceiveStockModal()"
+                  class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium rounded-lg transition flex items-center gap-1.5"
+                >
+                  <i
+                    data-lucide="arrow-down-left"
+                    class="w-3.5 h-3.5 text-emerald-400"
+                  ></i>
+                  <span data-i18n="btn_bulk_receive">Stock Receipt</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Inventory Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr
+                    class="border-b border-slate-200 bg-slate-50/50 text-slate-500 font-semibold uppercase tracking-wider"
+                  >
+                    <th class="py-3 px-4" data-i18n="th_product">Product</th>
+                    <th class="py-3 px-4" data-i18n="th_variant">
+                      SKU / Barcode
+                    </th>
+                    <th class="py-3 px-4" data-i18n="th_movement">
+                      Stock Movement
+                    </th>
+                    <th class="py-3 px-4" data-i18n="th_pricing">
+                      Price (USD / KHR)
+                    </th>
+                    <th class="py-3 px-4 text-center" data-i18n="th_status">
+                      Status
+                    </th>
+                    <th class="py-3 px-4 text-right" data-i18n="th_actions">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="inventoryTableBody"
+                  class="divide-y divide-slate-100"
+                >
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= SECTION: POS / CASHIER TERMINAL ================= -->
+        <div id="view-pos" class="view-panel hidden space-y-6">
+          <div
+            class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full items-start"
+          >
+            <!-- Products Catalog & Barcode Fast input (Col 7) -->
+            <div class="lg:col-span-7 space-y-4">
+              <div
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3"
+              >
+                <div class="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                  <i data-lucide="barcode" class="w-5 h-5"></i>
+                </div>
+                <div class="flex-1">
+                  <label
+                    class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block"
+                    data-i18n="pos_barcode_label"
+                    >Scan Barcode or Type SKU</label
+                  >
+                  <input
+                    type="text"
+                    id="posBarcodeInput"
+                    onkeydown="handleBarcodeEnter(event)"
+                    placeholder="Point scanner or type code and press Enter..."
+                    class="w-full mt-0.5 text-sm font-mono font-medium text-slate-900 border-b border-slate-200 focus:border-blue-600 focus:outline-none pb-1 bg-transparent"
+                  />
+                </div>
+                <button
+                  onclick="navigateTo('scanner')"
+                  class="px-3 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg flex items-center gap-1.5 transition"
+                >
+                  <i data-lucide="camera" class="w-3.5 h-3.5 text-blue-600"></i>
+                  <span data-i18n="btn_camera_scan">Camera</span>
+                </button>
+              </div>
+
+              <!-- Category / Filter buttons -->
+              <div
+                class="flex items-center gap-2 overflow-x-auto pb-1"
+                id="posCategoryFilters"
+              ></div>
+
+              <!-- Product Cards Grid -->
+              <div
+                class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[560px] overflow-y-auto pr-1"
+                id="posProductGrid"
+              ></div>
+            </div>
+            <!-- Cart & Checkout Sidebar (Col 5) -->
+            <div
+              class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col h-[720px]"
+            >
+              <div
+                class="flex items-center justify-between pb-3 border-b border-slate-100"
+              >
+                <div class="flex items-center gap-2">
+                  <i data-lucide="receipt" class="w-4 h-4 text-blue-600"></i>
+                  <h3
+                    class="font-bold text-slate-900 text-sm"
+                    data-i18n="pos_current_order"
+                  >
+                    Current Sale Order
+                  </h3>
+                </div>
+                <button
+                  onclick="clearCart()"
+                  class="text-xs text-rose-500 hover:text-rose-700 font-medium transition"
+                  data-i18n="btn_clear_cart"
+                >
+                  Clear Cart
+                </button>
+              </div>
+
+              <!-- Cart Items List -->
+              <div
+                class="flex-1 overflow-y-auto py-3 space-y-2.5 divide-y divide-slate-100"
+                id="posCartList"
+              ></div>
+
+              <!-- Cart Summary & Currency Breakdown -->
+              <div
+                class="pt-4 border-t border-slate-200 space-y-3 bg-slate-50/70 p-4 rounded-xl mt-2"
+              >
+                <div class="flex justify-between text-xs text-slate-600">
+                  <span data-i18n="pos_subtotal">Subtotal</span>
+                  <span class="font-medium" id="posSubtotalUSD">$0.00</span>
+                </div>
+                <div class="flex justify-between items-baseline pt-1">
+                  <span
+                    class="text-sm font-bold text-slate-900"
+                    data-i18n="pos_total"
+                    >Total Due:</span
+                  >
+                  <div class="text-right">
+                    <div
+                      class="text-xl font-bold text-blue-700"
+                      id="posTotalUSD"
+                    >
+                      $0.00
+                    </div>
+                    <div
+                      class="text-xs font-semibold text-emerald-600"
+                      id="posTotalKHR"
+                    >
+                      0 ៛
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Payment Method Selection -->
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onclick="selectPaymentMethod('cash')"
+                    id="btnPayMethodCash"
+                    class="py-1.5 px-2 rounded-lg border border-blue-600 bg-blue-50 text-blue-700 font-medium text-xs flex items-center justify-center gap-1.5"
+                  >
+                    <i data-lucide="banknote" class="w-3.5 h-3.5"></i>
+                    <span>Cash</span>
+                  </button>
+                  <button
+                    type="button"
+                    onclick="selectPaymentMethod('khqr')"
+                    id="btnPayMethodKHQR"
+                    class="py-1.5 px-2 rounded-lg border border-slate-200 bg-white text-slate-600 font-medium text-xs flex items-center justify-center gap-1.5 hover:bg-slate-50"
+                  >
+                    <i
+                      data-lucide="qr-code"
+                      class="w-3.5 h-3.5 text-khmerRed"
+                    ></i>
+                    <span>KHQR Pay</span>
+                  </button>
+                </div>
+
+                <!-- Cash Tendered & Change Calculation -->
+                <div id="cashTenderSection" class="space-y-2">
+                  <div class="flex items-center gap-2">
+                    <label
+                      class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider"
+                      data-i18n="pos_tendered"
+                      >Received</label
+                    >
+                    <select
+                      id="tenderCurrency"
+                      onchange="calculateChange()"
+                      class="text-xs border border-slate-300 rounded px-1.5 py-1 bg-white"
+                    >
+                      <option value="USD">USD ($)</option>
+                      <option value="KHR">KHR (៛)</option>
+                    </select>
+                    <input
+                      type="number"
+                      step="0.01"
+                      id="tenderAmountInput"
+                      oninput="calculateChange()"
+                      placeholder="0.00"
+                      class="flex-1 text-right text-xs font-medium border border-slate-300 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+                  <div
+                    class="flex justify-between items-center text-xs font-medium bg-white p-2 rounded-lg border border-slate-200"
+                  >
+                    <span class="text-slate-600" data-i18n="pos_change"
+                      >Change:</span
+                    >
+                    <div class="text-right">
+                      <span id="posChangeUSD" class="font-bold text-emerald-600"
+                        >$0.00</span
+                      >
+                      <span class="text-[11px] text-slate-500 ml-1"
+                        >(<span id="posChangeKHR">0 ៛</span>)</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <!-- KHQR Instructions -->
+                <div
+                  id="khqrPromptSection"
+                  class="hidden p-2.5 bg-red-50 border border-red-100 rounded-xl text-center text-xs space-y-1"
+                >
+                  <div
+                    class="font-bold text-khmerRed flex items-center justify-center gap-1.5"
+                  >
+                    <i data-lucide="qr-code" class="w-4 h-4"></i>
+                    <span>Bakong KHQR Ready</span>
+                  </div>
+                  <p class="text-[11px] text-slate-600">
+                    Scan merchant QR code on receipt or checkout.
+                  </p>
+                </div>
+
+                <!-- Checkout Action -->
+                <button
+                  onclick="processCheckout()"
+                  id="btnCheckout"
+                  class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold text-sm rounded-xl shadow transition flex items-center justify-center gap-2"
+                >
+                  <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                  <span data-i18n="btn_complete_sale"
+                    >Complete Sale (Save to Backend)</span
+                  >
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= SECTION: BARCODE SCANNER ================= -->
+        <div id="view-scanner" class="view-panel hidden space-y-6">
+          <div class="max-w-3xl mx-auto space-y-6">
+            <div
+              class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs"
+            >
+              <div
+                class="flex items-center justify-between pb-4 border-b border-slate-100"
+              >
+                <div>
+                  <h2
+                    class="text-base font-bold text-slate-900"
+                    data-i18n="scanner_title"
+                  >
+                    Webcam Barcode Scanner
+                  </h2>
+                  <p
+                    class="text-xs text-slate-500"
+                    data-i18n="scanner_subtitle"
+                  >
+                    Scan product barcodes (EAN-13, UPC-A, Code 128) using your
+                    laptop or phone camera.
+                  </p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    id="btnStartCamera"
+                    onclick="startScanner()"
+                    class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition flex items-center gap-1.5 shadow-sm"
+                  >
+                    <i data-lucide="video" class="w-3.5 h-3.5"></i>
+                    <span data-i18n="btn_start_camera">Start Camera</span>
+                  </button>
+                  <button
+                    id="btnStopCamera"
+                    onclick="stopScanner()"
+                    class="hidden px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-lg transition flex items-center gap-1.5 shadow-sm"
+                  >
+                    <i data-lucide="video-off" class="w-3.5 h-3.5"></i>
+                    <span data-i18n="btn_stop_camera">Stop Camera</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Camera Viewport with laser overlay -->
+              <div
+                class="mt-5 relative bg-slate-950 rounded-xl overflow-hidden aspect-video flex items-center justify-center border-2 border-dashed border-slate-700"
+              >
+                <div id="reader" class="w-full h-full"></div>
+                <div
+                  id="scannerOverlay"
+                  class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 p-4 text-center pointer-events-none"
+                >
+                  <i
+                    data-lucide="scan"
+                    class="w-12 h-12 stroke-[1.2] text-slate-500 mb-2"
+                  ></i>
+                  <p class="text-xs font-medium text-slate-300">
+                    Click "Start Camera" to scan product packaging
+                  </p>
+                  <p class="text-[11px] text-slate-500 mt-1">
+                    Direct USB laser barcode scanners work automatically
+                  </p>
+                </div>
+                <div id="laserLine" class="scanner-laser hidden"></div>
+              </div>
+
+              <!-- Manual Barcode Simulator -->
+              <div class="mt-5 pt-4 border-t border-slate-100">
+                <label
+                  class="text-xs font-semibold text-slate-600 block mb-1.5"
+                  data-i18n="scanner_test_input"
+                  >Or Test with Barcode Simulator:</label
+                >
+                <div class="flex gap-2">
+                  <input
+                    type="text"
+                    id="manualScannerInput"
+                    placeholder="e.g. 8850000000001"
+                    class="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onclick="handleSimulatedScan()"
+                    class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium rounded-lg transition"
+                  >
+                    <span data-i18n="btn_lookup">Lookup Code</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Scan Result Preview Box -->
+              <div
+                id="scannedProductResult"
+                class="hidden mt-5 p-4 rounded-xl bg-blue-50 border border-blue-200 text-xs"
+              >
+                <div class="flex items-start justify-between">
+                  <div>
+                    <span
+                      class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-200 text-blue-800"
+                      data-i18n="badge_scanned"
+                      >SCANNED ITEM</span
+                    >
+                    <h4
+                      class="font-bold text-slate-900 text-sm mt-1"
+                      id="scannedName"
+                    >
+                      --
+                    </h4>
+                    <p class="text-slate-600 text-xs mt-0.5">
+                      Barcode:
+                      <span id="scannedBarcode" class="font-mono font-medium"
+                        >--</span
+                      >
+                    </p>
+                    <p class="text-slate-600 text-xs">
+                      Stock on hand:
+                      <span id="scannedStock" class="font-bold text-slate-900"
+                        >0</span
+                      >
+                    </p>
+                  </div>
+                  <div class="text-right">
+                    <div
+                      class="text-base font-bold text-blue-700"
+                      id="scannedPrice"
+                    >
+                      --
+                    </div>
+                    <button
+                      onclick="addScannedToCart()"
+                      class="mt-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm flex items-center gap-1 text-xs"
+                    >
+                      <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                      <span data-i18n="btn_add_to_sale">Add to Sale</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= SECTION: DAILY CLOSING & REPORTS ================= -->
+        <div id="view-reports" class="view-panel hidden space-y-6">
+          <div
+            class="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          >
+            <div>
+              <h2
+                class="text-base font-bold text-slate-900"
+                data-i18n="reports_title"
+              >
+                Daily Sales & Reports
+              </h2>
+              <p class="text-xs text-slate-500" data-i18n="reports_subtitle">
+                Review transaction logs, estimated gross profit, and export
+                records.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                onclick="exportSalesToCSV()"
+                class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg shadow-sm transition flex items-center gap-1.5"
+              >
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span data-i18n="btn_export_csv">Export Sales (CSV)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Financial KPI Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="reportKpiGrid">
+            <div
+              class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"
+            >
+              <span
+                class="text-xs font-medium text-slate-500 uppercase tracking-wider"
+                data-i18n="report_revenue"
+                >Total Revenue Today</span
+              >
+              <div
+                class="text-2xl font-bold text-blue-700 mt-2"
+                id="reportRevUSD"
+              >
+                $0.00
+              </div>
+              <p class="text-xs text-slate-500 mt-1" id="reportRevKHR">0 ៛</p>
+            </div>
+            <div
+              class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"
+              id="kpiProfitCard"
+            >
+              <span
+                class="text-xs font-medium text-slate-500 uppercase tracking-wider"
+                data-i18n="report_profit"
+              >Estimated Gross Profit</span>
+              <div
+                class="text-2xl font-bold text-emerald-600 mt-2"
+                id="reportProfitUSD"
+              >
+                $0.00
+              </div>
+              <p class="text-xs text-slate-500 mt-1">
+                Based on (Retail Price - Cost)
+              </p>
+            </div>
+            <div
+              class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs"
+            >
+              <span
+                class="text-xs font-medium text-slate-500 uppercase tracking-wider"
+                data-i18n="report_transactions"
+              >Transactions Completed</span>
+              <div
+                class="text-2xl font-bold text-slate-900 mt-2"
+                id="reportTxCount"
+              >
+                0
+              </div>
+              <p class="text-xs text-slate-500 mt-1">
+                Recorded sales in database
+              </p>
+            </div>
+          </div>
+
+          <!-- Sales Ledger Table -->
+          <div
+            class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden"
+          >
+            <div
+              class="p-4 border-b border-slate-100 flex items-center justify-between"
+            >
+              <h3
+                class="font-bold text-slate-900 text-sm"
+                data-i18n="recent_sales_title"
+              >
+                Recent Sales Transactions
+              </h3>
+              <span class="text-xs text-slate-500" id="salesRecordCount"
+                >0 orders recorded</span
+              >
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr
+                    class="border-b border-slate-200 bg-slate-50/50 text-slate-500 font-semibold uppercase tracking-wider"
+                  >
+                    <th class="py-3 px-4">Receipt #</th>
+                    <th class="py-3 px-4">Date / Time</th>
+                    <th class="py-3 px-4">Payment</th>
+                    <th class="py-3 px-4">Total (USD)</th>
+                    <th class="py-3 px-4">Total (KHR)</th>
+                    <th class="py-3 px-4 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="salesTableBody"
+                  class="divide-y divide-slate-100"
+                ></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= SECTION: SETTINGS ================= -->
+        <div id="view-settings" class="view-panel hidden space-y-6">
+          <div class="max-w-2xl mx-auto space-y-6">
+            <div
+              class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6"
+            >
+              <h2
+                class="text-base font-bold text-slate-900"
+                data-i18n="settings_title"
+              >
+                Shop Configuration & Currency
+              </h2>
+
+              <div class="space-y-4">
+                <div>
+                  <label
+                    class="text-xs font-semibold text-slate-700 block mb-1"
+                    data-i18n="lbl_shop_name"
+                    >Shop / Business Name</label
+                  >
+                  <input
+                    type="text"
+                    id="settingShopName"
+                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    class="text-xs font-semibold text-slate-700 block mb-1"
+                  >
+                    <span data-i18n="lbl_exchange_rate"
+                      >Exchange Rate (1 USD to KHR)</span
+                    >
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-medium text-slate-500"
+                      >$1.00 USD =</span
+                    >
+                    <input
+                      type="number"
+                      id="settingExchangeRate"
+                      value="4100"
+                      class="w-32 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-900"
+                    />
+                    <span class="text-xs font-medium text-slate-500"
+                      >KHR (៛)</span
+                    >
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    class="text-xs font-semibold text-slate-700 block mb-1"
+                    data-i18n="lbl_tax_address"
+                    >Store Location / Address on Receipt</label
+                  >
+                  <input
+                    type="text"
+                    id="settingShopAddress"
+                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="text-xs font-semibold text-slate-700 block mb-1"
+                    >KHQR Merchant Bakong ID / Phone</label
+                  >
+                  <input
+                    type="text"
+                    id="settingBakongId"
+                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div class="pt-4 border-t border-slate-100 flex justify-end">
+                <button
+                  onclick="saveSettings()"
+                  class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg shadow-sm transition"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ================= ADD / EDIT PRODUCT MODAL ================= -->
+    <div
+      id="productModal"
+      class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden"
+    >
+      <div
+        class="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden"
+      >
+        <div
+          class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50"
+        >
+          <h3 class="font-bold text-slate-900 text-sm" id="productModalTitle">
+            Add New Product
+          </h3>
+          <button
+            onclick="closeProductModal()"
+            class="text-slate-400 hover:text-slate-600"
+          >
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <form
+          id="productForm"
+          onsubmit="handleProductSubmit(event)"
+          class="p-5 space-y-4 text-xs"
+        >
+          <input type="hidden" id="prodEditId" />
+
+          <div>
+            <label
+              class="font-semibold text-slate-700 block mb-1"
+              data-i18n="form_name"
+              >Product Name *</label
+            >
+            <input
+              type="text"
+              id="prodName"
+              required
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                class="font-semibold text-slate-700 block mb-1"
+                data-i18n="form_barcode"
+                >Barcode / EAN-13 *</label
+              >
+              <div class="relative">
+                <input
+                  type="text"
+                  id="prodBarcode"
+                  required
+                  class="w-full px-3 py-2 font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onclick="generateRandomBarcode()"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-blue-600 font-semibold hover:underline"
+                >
+                  Gen
+                </button>
+              </div>
+            </div>
+            <div>
+              <label
+                class="font-semibold text-slate-700 block mb-1"
+                data-i18n="form_sku"
+                >SKU / Variant</label
+              >
+              <input
+                type="text"
+                id="prodSku"
+                class="w-full px-3 py-2 font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                class="font-semibold text-slate-700 block mb-1"
+                data-i18n="form_category"
+                >Category</label
+              >
+              <select
+                id="prodCategory"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+              >
+                <option value="General">General</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Stationery">Stationery</option>
+                <option value="Beverages">Beverages</option>
+                <option value="Accessories">Accessories</option>
+              </select>
+            </div>
+            <div>
+              <label
+                class="font-semibold text-slate-700 block mb-1"
+                data-i18n="form_min_stock"
+                >Low Stock Warning Alert</label
+              >
+              <input
+                type="number"
+                id="prodMinStock"
+                value="5"
+                min="1"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label
+                class="font-semibold text-slate-700 block mb-1"
+                data-i18n="form_cost"
+                >Cost Price ($)</label
+              >
+              <input
+                type="number"
+                step="0.01"
+                id="prodCost"
+                placeholder="0.00"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label
+                class="font-semibold text-slate-700 block mb-1"
+                data-i18n="form_retail"
+                >Selling Price ($) *</label
+              >
+              <input
+                type="number"
+                step="0.01"
+                id="prodPrice"
+                required
+                placeholder="0.00"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-blue-700"
+              />
+            </div>
+            <div>
+              <label
+                class="font-semibold text-slate-700 block mb-1"
+                data-i18n="form_stock"
+                >Initial Stock *</label
+              >
+              <input
+                type="number"
+                id="prodStock"
+                required
+                value="10"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div
+            class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2"
+          >
+            <button
+              type="button"
+              onclick="closeProductModal()"
+              class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition"
+            >
+              Save Product
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================= RECEIVE / ADJUST STOCK MODAL ================= -->
+    <div
+      id="stockAdjustModal"
+      class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden"
+    >
+      <div
+        class="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 overflow-hidden"
+      >
+        <div
+          class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50"
+        >
+          <h3
+            class="font-bold text-slate-900 text-sm"
+            data-i18n="modal_adjust_stock"
+          >
+            Quick Stock Adjustment
+          </h3>
+          <button
+            onclick="closeAdjustModal()"
+            class="text-slate-400 hover:text-slate-600"
+          >
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div class="p-5 space-y-4 text-xs">
+          <input type="hidden" id="adjustProdId" />
+          <div>
+            <label class="text-slate-500 block mb-1">Product</label>
+            <div class="font-bold text-slate-800 text-sm" id="adjustProdName">
+              --
+            </div>
+            <div class="text-[11px] text-slate-500">
+              Current in hand:
+              <span class="font-bold text-slate-900" id="adjustCurrentStock"
+                >0</span
+              >
+            </div>
+          </div>
+
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1"
+              >Adjustment Type</label
+            >
+            <div class="grid grid-cols-2 gap-2">
+              <label
+                class="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50"
+              >
+                <input
+                  type="radio"
+                  name="adjustType"
+                  value="add"
+                  checked
+                  class="text-blue-600"
+                />
+                <span class="font-medium text-slate-700"
+                  >+ Add Received Stock</span
+                >
+              </label>
+              <label
+                class="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50"
+              >
+                <input
+                  type="radio"
+                  name="adjustType"
+                  value="set"
+                  class="text-blue-600"
+                />
+                <span class="font-medium text-slate-700">= Set New Total</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1"
+              >Quantity</label
+            >
+            <input
+              type="number"
+              id="adjustQuantityInput"
+              min="1"
+              value="5"
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-900"
+            />
+          </div>
+
+          <div
+            class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2"
+          >
+            <button
+              onclick="closeAdjustModal()"
+              class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              onclick="confirmStockAdjustment()"
+              class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition"
+            >
+              Update Stock
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= RECEIPT MODAL ================= -->
+    <div
+      id="receiptModal"
+      class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden"
+    >
+      <div
+        class="bg-white rounded-3xl w-full max-w-sm shadow-2xl border border-slate-200 overflow-hidden"
+      >
+        <div
+          id="printableReceipt"
+          class="p-6 font-mono text-xs text-slate-800 space-y-3"
+        >
+          <div
+            class="text-center space-y-1 pb-3 border-b border-dashed border-slate-300"
+          >
+            <div
+              class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-1"
+            >
+              <i data-lucide="store" class="w-5 h-5"></i>
+            </div>
+            <h4
+              class="font-bold text-slate-900 text-sm tracking-tight"
+              id="rcptShopTitle"
+            >
+              ShopFlow KH
+            </h4>
+            <p class="text-[11px] text-slate-500" id="rcptAddress">
+              Phnom Penh, Cambodia
+            </p>
+            <div class="pt-2 flex justify-between text-[10px] text-slate-500">
+              <span>Receipt: <strong id="rcptId">#0000</strong></span>
+              <span id="rcptTime">--</span>
+            </div>
+          </div>
+
+          <div
+            class="space-y-1.5 max-h-52 overflow-y-auto"
+            id="rcptItemsContainer"
+          ></div>
+
+          <div class="border-t border-dashed border-slate-300 pt-3 space-y-1">
+            <div class="flex justify-between font-bold text-sm text-slate-900">
+              <span>TOTAL DUE:</span>
+              <div class="text-right">
+                <span id="rcptTotalUSD">$0.00</span>
+                <div
+                  class="text-[11px] text-emerald-600 font-semibold"
+                  id="rcptTotalKHR"
+                >
+                  0 ៛
+                </div>
+              </div>
+            </div>
+            <div class="flex justify-between text-[11px] text-slate-600 pt-1">
+              <span>Payment Method:</span>
+              <span id="rcptPaymentMethod" class="font-semibold uppercase"
+                >CASH</span
+              >
+            </div>
+            <div class="flex justify-between text-[11px] text-slate-600">
+              <span>Tendered:</span>
+              <span id="rcptTendered">$0.00</span>
+            </div>
+            <div class="flex justify-between text-[11px] text-slate-600">
+              <span>Change:</span>
+              <span id="rcptChange">$0.00</span>
+            </div>
+          </div>
+
+          <div class="text-center text-[10px] text-slate-400 pt-2">
+            Thank you for shopping with us! • អរគុណ!
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-50 border-t border-slate-200 flex gap-2">
+          <button
+            onclick="window.print()"
+            class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-sans text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
+          >
+            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+            <span>Print</span>
+          </button>
+          <button
+            onclick="closeReceiptModal()"
+            class="flex-1 py-2 bg-slate-800 hover:bg-slate-900 text-white font-sans text-xs font-semibold rounded-xl transition"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div
+      id="toastBox"
+      class="fixed bottom-5 right-5 z-50 transform transition-all duration-300 translate-y-20 opacity-0 pointer-events-none"
+    >
+      <div
+        id="toastContent"
+        class="flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-xs font-medium bg-slate-900 text-white border-slate-800"
+      >
+        <i id="toastIcon" data-lucide="info" class="w-4 h-4 text-blue-400"></i>
+        <span id="toastMsg">Action completed</span>
+      </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+      const BACKEND_HOST = window.location.port === "5500" ? "http://localhost:8080" : "";
+      const API_BASE = BACKEND_HOST + "/api/products";
+      const API_SALES = BACKEND_HOST + "/api/sales";
+      const API_REPORTS = BACKEND_HOST + "/api/reports/daily-summary";
+
+      const TRANSLATIONS = {
+        en: {
+          nav_main: "MAIN",
+          nav_records: "RECORDS & BACKEND",
+          menu_dashboard: "Dashboard",
+          menu_pos: "POS Terminal",
+          menu_inventory: "Stock Management",
+          menu_scanner: "Barcode Scanner",
+          menu_reports: "Daily Closing & Sales",
+          menu_settings: "Exchange Rate & Settings",
+          btn_add_product: "New Product",
+          btn_open_pos: "Cashier POS",
+          daily_closing_title: "Daily Stock Closing",
+          card_total_stock: "Total Stock",
+          card_variants: "variants active",
+          card_total_products: "Total Products",
+          card_in_catalog: "Products in inventory",
+          card_today_sales: "Today's Sales",
+          card_low_stock: "Low Stock Items",
+          card_attention_req: "Requires restocking",
+          stock_inventory_title: "Stock Inventory",
+          tab_todays_stock: "Today's Stock",
+          tab_low_stock: "Low Stock",
+          tab_out_of_stock: "Out of Stock",
+          btn_bulk_receive: "Stock Receipt",
+          th_product: "Product",
+          th_variant: "SKU / Barcode",
+          th_movement: "Stock Movement",
+          th_pricing: "Price (USD / KHR)",
+          th_status: "Status",
+          th_actions: "Actions",
+          pos_barcode_label: "Scan Barcode or Type SKU",
+          btn_camera_scan: "Camera",
+          pos_current_order: "Current Sale Order",
+          btn_clear_cart: "Clear Cart",
+          pos_subtotal: "Subtotal",
+          pos_total: "Total Due:",
+          pos_tendered: "Received",
+          pos_change: "Change:",
+          btn_complete_sale: "Complete Sale (Save to Backend)",
+          scanner_title: "Webcam Barcode Scanner",
+          scanner_subtitle: "Scan product barcodes using your webcam.",
+          btn_start_camera: "Start Camera",
+          btn_stop_camera: "Stop Camera",
+          scanner_test_input: "Or Test with Barcode Simulator:",
+          btn_lookup: "Lookup Code",
+          badge_scanned: "SCANNED ITEM",
+          btn_add_to_sale: "Add to Sale",
+          reports_title: "Daily Sales & Reports",
+          reports_subtitle: "Review transaction logs and revenue.",
+          btn_export_csv: "Export Sales (CSV)",
+          report_revenue: "Total Revenue Today",
+          report_profit: "Estimated Gross Profit",
+          report_transactions: "Transactions Completed",
+          recent_sales_title: "Recent Sales Transactions",
+          settings_title: "Shop Configuration & Currency",
+          lbl_shop_name: "Shop / Business Name",
+          lbl_exchange_rate: "Exchange Rate (1 USD to KHR)",
+          lbl_tax_address: "Store Location / Address on Receipt",
+          form_name: "Product Name *",
+          form_barcode: "Barcode / EAN-13 *",
+          form_sku: "SKU / Variant",
+          form_category: "Category",
+          form_min_stock: "Low Stock Warning Alert",
+          form_cost: "Cost Price ($)",
+          form_retail: "Selling Price ($) *",
+          form_stock: "Initial Stock *",
+          modal_adjust_stock: "Quick Stock Adjustment",
+        },
+        km: {
+          nav_main: "ចម្បង",
+          nav_records: "កំណត់ត្រា និងប្រព័ន្ធទិន្នន័យ",
+          menu_dashboard: "ផ្ទាំងគ្រប់គ្រង",
+          menu_pos: "ប្រព័ន្ធលក់ POS",
+          menu_inventory: "ការគ្រប់គ្រងស្តុក",
+          menu_scanner: "ម៉ាស៊ីនស្កេនបាកូដ",
+          menu_reports: "បិទបញ្ជី & ការលក់",
+          menu_settings: "អត្រាប្តូរប្រាក់ & ការកំណត់",
+          btn_add_product: "បន្ថែមទំនិញថ្មី",
+          btn_open_pos: "ទំព័រគិតលុយ POS",
+          daily_closing_title: "ការបិទបញ្ជីស្តុកប្រចាំថ្ងៃ",
+          card_total_stock: "ស្តុកសរុប",
+          card_variants: "ប្រភេទមុខទំនិញ",
+          card_total_products: "មុខទំនិញសរុប",
+          card_in_catalog: "ទំនិញក្នុងប្រព័ន្ធ",
+          card_today_sales: "ការលក់ថ្ងៃនេះ",
+          card_low_stock: "ទំនិញជិតអស់ពីស្តុក",
+          card_attention_req: "ត្រូវការនាំចូលបន្ថែម",
+          stock_inventory_title: "បញ្ជីទំនិញក្នុងស្តុក",
+          tab_todays_stock: "ស្តុកថ្ងៃនេះ",
+          tab_low_stock: "ជិតអស់ពីស្តុក",
+          tab_out_of_stock: "អស់ពីស្តុក",
+          btn_bulk_receive: "បញ្ចូលស្តុកថ្មី",
+          th_product: "ឈ្មោះទំនិញ",
+          th_variant: "កូដទំនិញ / បាកូដ",
+          th_movement: "បម្រែបម្រួលស្តុក",
+          th_pricing: "តម្លៃ (USD / KHR)",
+          th_status: "ស្ថានភាព",
+          th_actions: "សកម្មភាព",
+          pos_barcode_label: "ស្កេនបាកូដ ឬ វាយលេខកូដទំនិញ",
+          btn_camera_scan: "កាមេរ៉ា",
+          pos_current_order: "ការបញ្ជាទិញបច្ចុប្បន្ន",
+          btn_clear_cart: "សម្អាតកន្ត្រក",
+          pos_subtotal: "សរុបរង",
+          pos_total: "សរុបត្រូវទូទាត់:",
+          pos_tendered: "ប្រាក់ទទួលបាន",
+          pos_change: "ប្រាក់អាប់:",
+          btn_complete_sale: "បញ្ចប់ការលក់ (កត់ត្រាចូលប្រព័ន្ធ)",
+          scanner_title: "ម៉ាស៊ីនស្កេនបាកូដកាមេរ៉ា",
+          scanner_subtitle: "ស្កេនបាកូដទំនិញតាមកាមេរ៉ាកុំព្យូទ័រ ឬទូរស័ព្ទ។",
+          btn_start_camera: "បើកកាមេរ៉ា",
+          btn_stop_camera: "បិទកាមេរ៉ា",
+          scanner_test_input: "ឬ សាកល្បងវាយលេខកូដបាកូដ៖",
+          btn_lookup: "ស្វែងរក",
+          badge_scanned: "ទំនិញដែលស្កេនបាន",
+          btn_add_to_sale: "បញ្ចូលទៅការលក់",
+          reports_title: "របាយការណ៍លក់ និងស្តុកប្រចាំថ្ងៃ",
+          reports_subtitle: "ពិនិត្យមើលប្រតិបត្តិការ និងចំណូល។",
+          btn_export_csv: "ទាញយករបាយការណ៍លក់ (CSV)",
+          report_revenue: "ចំណូលសរុបថ្ងៃនេះ",
+          report_profit: "ចំណេញដុលប៉ាន់ស្មាន",
+          report_transactions: "ចំនួនវិក្កយបត្របានលក់",
+          recent_sales_title: "កំណត់ត្រាការលក់ថ្មីៗ",
+          settings_title: "ការកំណត់ហាង & រូបិយប័ណ្ណ",
+          lbl_shop_name: "ឈ្មោះហាង / អាជីវកម្ម",
+          lbl_exchange_rate: "អត្រាប្តូរប្រាក់ (1 USD ទៅ KHR)",
+          lbl_tax_address: "អាសយដ្ឋានហាង / ចំណាំលើវិក្កយបត្រ",
+          form_name: "ឈ្មោះទំនិញ *",
+          form_barcode: "លេខបាកូដ / EAN-13 *",
+          form_sku: "លេខកូដសំគាល់ SKU",
+          form_category: "ប្រភេទ",
+          form_min_stock: "កម្រិតកំណត់ប្រកាសអាសន្នជិតអស់",
+          form_cost: "ថ្លៃដើម ($)",
+          form_retail: "តម្លៃលក់ ($) *",
+          form_stock: "ចំនួនស្តុកដំបូង *",
+          modal_adjust_stock: "កែតម្រូវស្តុកទំនិញរហ័ស",
+        },
+      };
+
+      let appState = {
+        language: "en",
+        activeTab: "dashboard",
+        stockFilter: "all",
+        selectedPosCategory: "All",
+        paymentMethod: "cash",
+        exchangeRate: 4100,
+        shopProfile: {
+          name: "SC Jewelry & Retail Shop",
+          address: "St. 271, Toul Tompoung, Phnom Penh, Cambodia",
+          bakongId: "012888999@aclb",
+        },
+        products: [],
+        sales: [],
+        cart: [],
+        lastScannedProduct: null,
+      };
+
+      let html5QrScanner = null;
+      function applyLanguage() {
+        const isKm = appState.language === "km";
+        const btnEn = document.getElementById("lang-en");
+        const btnKm = document.getElementById("lang-km");
+
+        if (btnEn && btnKm) {
+          btnEn.className = !isKm
+            ? "flex-1 py-1 px-2 rounded font-medium text-center transition bg-blue-600 text-white"
+            : "flex-1 py-1 px-2 rounded font-medium text-center transition text-slate-400 hover:text-white";
+          btnKm.className = isKm
+            ? "flex-1 py-1 px-2 rounded font-medium text-center transition bg-blue-600 text-white"
+            : "flex-1 py-1 px-2 rounded font-medium text-center transition text-slate-400 hover:text-white";
+        }
+
+        const strings = TRANSLATIONS[appState.language] || TRANSLATIONS.en;
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const key = el.getAttribute("data-i18n");
+          if (strings[key]) {
+            el.innerText = strings[key];
+          }
+        });
+
+        initDate();
+      }
+      window.onload = function () {
+        loadSavedConfig();
+        initDate();
+        setLanguage(appState.language || "en");
+        fetchRemoteOrLocalData();
+        loadSalesData();
+        loadDailySummaryReport();
+        lucide.createIcons();
+      };
+
+      function initDate() {
+        const now = new Date();
+        const options = {
+          weekday: "short",
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        };
+        document.getElementById("currentDateStr").innerText =
+          now.toLocaleDateString(
+            appState.language === "km" ? "km-KH" : "en-US",
+            options,
+          );
+      }
+
+      function loadSavedConfig() {
+        try {
+          const savedLang = localStorage.getItem("shopflow_lang");
+          if (savedLang) appState.language = savedLang;
+          const savedRate = localStorage.getItem("shopflow_rate");
+          if (savedRate) appState.exchangeRate = parseFloat(savedRate) || 4100;
+          const savedShop = localStorage.getItem("shopflow_shop");
+          if (savedShop) appState.shopProfile = JSON.parse(savedShop);
+        } catch (err) {}
+      }
+
+      /* ================= SPRING BOOT CRUD (PRODUCTS) ================= */
+      async function fetchRemoteOrLocalData() {
+        try {
+          const res = await fetch(API_BASE);
+          if (res.ok) {
+            const data = await res.json();
+            appState.products = data.map((p) => ({
+              id: p.id,
+              name: p.name,
+              sku: p.sku || "",
+              barcode: p.barcode,
+              category: p.category || "General",
+              price: Number(p.sellingPrice || 0),
+              cost: Number(p.costPrice || 0),
+              stock: Number(p.stockInHand || 0),
+              openingStock: Number(p.openingStock || p.stockInHand || 0),
+              minStock: Number(p.minStockAlert || 5),
+            }));
+            renderAll();
+          }
+        } catch (err) {
+          console.warn("Backend not reached:", err);
+          showToast("Failed to connect to Spring Boot server", "alert-circle");
+        }
+      }
+
+      async function handleProductSubmit(e) {
+        e.preventDefault();
+        const id = document.getElementById("prodEditId").value;
+        const name = document.getElementById("prodName").value.trim();
+        const barcode = document.getElementById("prodBarcode").value.trim();
+        const sku =
+          document.getElementById("prodSku").value.trim() ||
+          "SKU-" + barcode.slice(-4);
+        const category = document.getElementById("prodCategory").value;
+        const cost = parseFloat(document.getElementById("prodCost").value) || 0;
+        const price =
+          parseFloat(document.getElementById("prodPrice").value) || 0;
+        const stock = parseInt(document.getElementById("prodStock").value) || 0;
+        const minStock =
+          parseInt(document.getElementById("prodMinStock").value) || 5;
+
+        const productPayload = {
+          name: name,
+          barcode: barcode,
+          sku: sku,
+          category: category,
+          costPrice: cost,
+          sellingPrice: price,
+          stockInHand: stock,
+          minStockAlert: minStock,
+        };
+
+        const url = id ? `${API_BASE}/${id}` : API_BASE;
+        const method = id ? "PUT" : "POST";
+
+        try {
+          const res = await fetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(productPayload),
+          });
+
+          if (res.ok) {
+            showToast(id ? `Updated "${name}"` : `Created "${name}"`, "check");
+            closeProductModal();
+            fetchRemoteOrLocalData();
+          } else {
+            showToast("Error saving product to backend", "alert-triangle");
+          }
+        } catch (err) {
+          showToast("Server connection error", "alert-circle");
+        }
+      }
+
+      async function deleteProduct(id) {
+        if (confirm("Are you sure you want to delete this product?")) {
+          try {
+            const res = await fetch(`${API_BASE}/${id}`, { method: "DELETE" });
+            if (res.ok) {
+              showToast("Removed product from inventory", "trash");
+              fetchRemoteOrLocalData();
+            } else {
+              showToast("Error deleting product", "alert-triangle");
+            }
+          } catch (err) {
+            showToast("Server connection error", "alert-circle");
+          }
+        }
+      }
+
+      async function confirmStockAdjustment() {
+        const id = document.getElementById("adjustProdId").value;
+        const qty =
+          parseInt(document.getElementById("adjustQuantityInput").value) || 0;
+        const adjustType =
+          document.querySelector('input[name="adjustType"]:checked')?.value ||
+          "add";
+
+        const prod = appState.products.find((p) => p.id === id);
+        if (!prod) return;
+
+        let change = adjustType === "add" ? qty : qty - prod.stock;
+
+        try {
+          const res = await fetch(
+            `${API_BASE}/${id}/adjust-stock?change=${change}`,
+            {
+              method: "PATCH",
+            },
+          );
+
+          if (res.ok) {
+            showToast(`Stock updated for ${prod.name}`, "check");
+            closeAdjustModal();
+            fetchRemoteOrLocalData();
+          } else {
+            showToast("Failed to update stock", "alert-triangle");
+          }
+        } catch (err) {
+          showToast("Server connection error", "alert-circle");
+        }
+      }
+
+      /* ================= SALES & CHECKOUT ================= */
+      async function processCheckout() {
+        if (appState.cart.length === 0) {
+          showToast("Cart is empty.", "alert-triangle");
+          return;
+        }
+
+        const totalUSD = appState.cart.reduce(
+          (sum, item) => sum + item.price * item.qty,
+          0,
+        );
+        const isCash = appState.paymentMethod === "cash";
+        const tenderCurrency = document.getElementById("tenderCurrency").value;
+        let tenderInput = isCash
+          ? parseFloat(document.getElementById("tenderAmountInput").value) ||
+            totalUSD
+          : totalUSD;
+        let tenderInUSD =
+          isCash && tenderCurrency === "KHR"
+            ? tenderInput / appState.exchangeRate
+            : tenderInput;
+
+        if (isCash && tenderInUSD < totalUSD - 0.001) {
+          showToast("Tendered cash is less than total due!", "alert-triangle");
+          return;
+        }
+
+        const receiptId = "REC-" + Math.floor(1000 + Math.random() * 9000);
+        const changeUSD = Math.max(0, tenderInUSD - totalUSD);
+
+        const salePayload = {
+          receiptCode: receiptId,
+          paymentMethod: appState.paymentMethod,
+          totalUsd: totalUSD,
+          totalKhr: Math.round(totalUSD * appState.exchangeRate),
+          tenderedUsd: tenderInUSD,
+          changeUsd: changeUSD,
+          items: appState.cart.map((item) => ({
+            productId: item.id,
+            productName: item.name,
+            quantity: item.qty,
+            unitPrice: item.price,
+            costPrice: item.cost || 0,
+          })),
+        };
+
+        try {
+          const res = await fetch(API_SALES, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(salePayload),
+          });
+
+          if (res.ok) {
+            showReceiptModal({
+              id: receiptId,
+              timestamp: new Date().toISOString(),
+              paymentMethod: appState.paymentMethod,
+              items: [...appState.cart],
+              totalUSD: totalUSD,
+              tenderedUSD: tenderInUSD,
+              changeUSD: changeUSD,
+            });
+
+            appState.cart = [];
+            document.getElementById("tenderAmountInput").value = "";
+            renderCart();
+            fetchRemoteOrLocalData();
+            loadSalesData();
+            loadDailySummaryReport();
+            showToast(`Sale recorded successfully! (#${receiptId})`, "check");
+          } else {
+            const errText = await res.text();
+            showToast("Sale error: " + errText, "alert-triangle");
+          }
+        } catch (err) {
+          showToast("Failed to connect to backend", "alert-circle");
+        }
+      }
+
+      async function loadSalesData() {
+        try {
+          const res = await fetch(API_SALES);
+          if (res.ok) {
+            const data = await res.json();
+            appState.sales = data.map((s) => ({
+              id: s.receiptCode,
+              timestamp: s.createdAt,
+              paymentMethod: s.paymentMethod || "cash",
+              totalUSD: Number(s.totalUsd || 0),
+              totalKHR: Number(s.totalKhr || 0),
+            }));
+            renderReports();
+          }
+        } catch (err) {}
+      }
+
+      async function loadDailySummaryReport() {
+        try {
+          const res = await fetch(API_REPORTS);
+          if (res.ok) {
+            const data = await res.json();
+            document.getElementById("metricTodaySalesUSD").innerText =
+              formatUSD(data.totalRevenueUsd);
+            document.getElementById("metricTodaySalesKHR").innerText =
+              Number(data.totalRevenueKhr).toLocaleString() + " ៛";
+            document.getElementById("reportRevUSD").innerText = formatUSD(
+              data.totalRevenueUsd,
+            );
+            document.getElementById("reportRevKHR").innerText =
+              Number(data.totalRevenueKhr).toLocaleString() + " ៛";
+            document.getElementById("reportProfitUSD").innerText = formatUSD(
+              data.estimatedProfitUsd,
+            );
+            document.getElementById("reportTxCount").innerText =
+              data.totalTransactions;
+          }
+        } catch (err) {}
+      }
+
+      /* ================= UI RENDERING ================= */
+      function renderAll() {
+        document.getElementById("sideShopName").innerText =
+          appState.shopProfile.name;
+        document.getElementById("navExchangeRate").innerText =
+          appState.exchangeRate.toLocaleString();
+
+        updateMetricCards();
+        renderInventoryTable();
+        renderPosProducts();
+        renderCart();
+        loadSettingsInputs();
+        lucide.createIcons();
+      }
+
+      function updateMetricCards() {
+        const totalStock = appState.products.reduce(
+          (acc, p) => acc + (parseInt(p.stock) || 0),
+          0,
+        );
+        const lowStockItems = appState.products.filter(
+          (p) => p.stock > 0 && p.stock <= (p.minStock || 5),
+        );
+        const outOfStockItems = appState.products.filter((p) => p.stock <= 0);
+
+        document.getElementById("metricTotalStock").innerText =
+          totalStock.toLocaleString();
+        document.getElementById("metricVariantsCount").innerText =
+          appState.products.length;
+        document.getElementById("metricTotalProducts").innerText =
+          appState.products.length;
+        document.getElementById("metricLowStockCount").innerText =
+          lowStockItems.length;
+        document.getElementById("metricOutOfStockCount").innerText =
+          `${outOfStockItems.length} out of stock`;
+
+        const badge = document.getElementById("lowStockBadge");
+        const urgentCount = lowStockItems.length + outOfStockItems.length;
+        if (urgentCount > 0) {
+          badge.classList.remove("hidden");
+          badge.innerText = urgentCount;
+        } else {
+          badge.classList.add("hidden");
+        }
+
+        document.getElementById("tabCountAll").innerText =
+          appState.products.length;
+        document.getElementById("tabCountLow").innerText = lowStockItems.length;
+        document.getElementById("tabCountOut").innerText =
+          outOfStockItems.length;
+      }
+
+      function renderInventoryTable() {
+        const tbody = document.getElementById("inventoryTableBody");
+        const searchVal = (
+          document.getElementById("inventorySearchInput")?.value || ""
+        )
+          .toLowerCase()
+          .trim();
+
+        let filtered = appState.products.filter((p) => {
+          const matches =
+            p.name.toLowerCase().includes(searchVal) ||
+            p.barcode.includes(searchVal) ||
+            p.sku.toLowerCase().includes(searchVal);
+          if (!matches) return false;
+          if (appState.stockFilter === "low")
+            return p.stock > 0 && p.stock <= (p.minStock || 5);
+          if (appState.stockFilter === "out") return p.stock <= 0;
+          return true;
+        });
+
+        document.getElementById("stockShowingCount").innerText =
+          `Showing ${filtered.length} of ${appState.products.length} items`;
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">No products found.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = filtered
+          .map(
+            (prod) => `
+          <tr class="hover:bg-slate-50">
+            <td class="py-3 px-4 font-semibold text-slate-900">${prod.name}</td>
+            <td class="py-3 px-4 font-mono text-slate-500">${prod.barcode}</td>
+            <td class="py-3 px-4 font-bold ${prod.stock <= prod.minStock ? "text-amber-600" : "text-slate-900"}">${prod.stock}</td>
+            <td class="py-3 px-4 font-bold text-blue-700">${formatUSD(prod.price)}</td>
+            <td class="py-3 px-4 text-center">
+              <span class="px-2 py-0.5 rounded text-[11px] font-semibold ${prod.stock > 0 ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}">
+                ${prod.stock > 0 ? "In Stock" : "Out of Stock"}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-right">
+              <button onclick="openAdjustModalFor('${prod.id}')" class="p-1 rounded bg-slate-100 hover:bg-slate-200 mr-1"><i data-lucide="plus-minus" class="w-3.5 h-3.5"></i></button>
+              <button onclick="openEditProductModal('${prod.id}')" class="p-1 rounded bg-slate-100 hover:bg-slate-200 mr-1"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+              <button onclick="deleteProduct('${prod.id}')" class="p-1 rounded bg-slate-100 hover:bg-rose-100 text-rose-600"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+            </td>
+          </tr>
+        `,
+          )
+          .join("");
+        lucide.createIcons();
+      }
+
+      function renderPosProducts() {
+        const grid = document.getElementById("posProductGrid");
+        const categories = [
+          "All",
+          ...new Set(appState.products.map((p) => p.category)),
+        ];
+        document.getElementById("posCategoryFilters").innerHTML = categories
+          .map(
+            (cat) => `
+          <button onclick="setPosCategory('${cat}')" class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${appState.selectedPosCategory === cat ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-700"}">${cat}</button>
+        `,
+          )
+          .join("");
+
+        let filtered = appState.products;
+        if (appState.selectedPosCategory !== "All") {
+          filtered = filtered.filter(
+            (p) => p.category === appState.selectedPosCategory,
+          );
+        }
+
+        grid.innerHTML = filtered
+          .map((prod) => {
+            const isOut = prod.stock <= 0;
+            return `
+            <div onclick="${isOut ? "" : `addToCart('${prod.id}')`}" class="bg-white rounded-xl border border-slate-200 p-3 flex flex-col justify-between cursor-pointer hover:border-blue-400 ${isOut ? "opacity-50 cursor-not-allowed" : "active:scale-95"}">
+              <div>
+                <span class="text-[10px] text-slate-400">${prod.sku || prod.barcode}</span>
+                <h4 class="font-semibold text-xs mt-1">${prod.name}</h4>
+              </div>
+              <div class="mt-3 flex justify-between items-baseline">
+                <span class="font-bold text-blue-700 text-sm">${formatUSD(prod.price)}</span>
+                <span class="text-[10px] text-slate-500">${prod.stock} left</span>
+              </div>
+            </div>
+          `;
+          })
+          .join("");
+      }
+
+      function renderCart() {
+        const container = document.getElementById("posCartList");
+        if (appState.cart.length === 0) {
+          container.innerHTML = `<div class="text-center py-12 text-slate-400 text-xs">Cart is empty</div>`;
+          document.getElementById("posSubtotalUSD").innerText = "$0.00";
+          document.getElementById("posTotalUSD").innerText = "$0.00";
+          document.getElementById("posTotalKHR").innerText = "0 ៛";
+          return;
+        }
+
+        let total = 0;
+        container.innerHTML = appState.cart
+          .map((item) => {
+            const lineTotal = item.price * item.qty;
+            total += lineTotal;
+            return `
+            <div class="pt-2 flex justify-between items-center text-xs">
+              <div>
+                <div class="font-semibold">${item.name}</div>
+                <div class="text-slate-500">${formatUSD(item.price)} × ${item.qty}</div>
+              </div>
+              <div class="flex items-center gap-1">
+                <button onclick="updateCartQty('${item.id}', -1)" class="w-5 h-5 bg-slate-100 rounded">-</button>
+                <span class="font-bold">${item.qty}</span>
+                <button onclick="updateCartQty('${item.id}', 1)" class="w-5 h-5 bg-slate-100 rounded">+</button>
+              </div>
+            </div>
+          `;
+          })
+          .join("");
+
+        document.getElementById("posSubtotalUSD").innerText = formatUSD(total);
+        document.getElementById("posTotalUSD").innerText = formatUSD(total);
+        document.getElementById("posTotalKHR").innerText = formatKHR(total);
+        calculateChange();
+      }
+
+      function renderReports() {
+        const tbody = document.getElementById("salesTableBody");
+        document.getElementById("salesRecordCount").innerText =
+          `${appState.sales.length} orders recorded`;
+
+        if (appState.sales.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">No recorded sales yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = appState.sales
+          .map(
+            (s) => `
+          <tr class="hover:bg-slate-50">
+            <td class="py-3 px-4 font-mono font-bold text-blue-700">${s.id}</td>
+            <td class="py-3 px-4 text-slate-600">${new Date(s.timestamp).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}</td>
+            <td class="py-3 px-4 uppercase">${s.paymentMethod}</td>
+            <td class="py-3 px-4 font-bold">${formatUSD(s.totalUSD)}</td>
+            <td class="py-3 px-4 text-emerald-600">${formatKHR(s.totalUSD)}</td>
+            <td class="py-3 px-4 text-center"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800">Completed</span></td>
+          </tr>
+        `,
+          )
+          .join("");
+      }
+
+      /* Helpers */
+      function setStockFilter(f) {
+        appState.stockFilter = f;
+        renderInventoryTable();
+      }
+      function setPosCategory(c) {
+        appState.selectedPosCategory = c;
+        renderPosProducts();
+      }
+      function addToCart(id) {
+        const prod = appState.products.find((p) => p.id === id);
+        if (!prod || prod.stock <= 0) return;
+        const item = appState.cart.find((i) => i.id === id);
+        if (item) {
+          if (item.qty + 1 <= prod.stock) item.qty++;
+        } else {
+          appState.cart.push({
+            id: prod.id,
+            name: prod.name,
+            price: prod.price,
+            cost: prod.cost,
+            qty: 1,
+          });
+        }
+        renderCart();
+      }
+      function updateCartQty(id, d) {
+        const item = appState.cart.find((i) => i.id === id);
+        const prod = appState.products.find((p) => p.id === id);
+        if (!item) return;
+        item.qty += d;
+        if (item.qty <= 0)
+          appState.cart = appState.cart.filter((i) => i.id !== id);
+        else if (prod && item.qty > prod.stock) item.qty = prod.stock;
+        renderCart();
+      }
+      function clearCart() {
+        appState.cart = [];
+        renderCart();
+      }
+      function selectPaymentMethod(m) {
+        appState.paymentMethod = m;
+        document.getElementById("btnPayMethodCash").className =
+          m === "cash"
+            ? "py-1.5 px-2 rounded-lg border border-blue-600 bg-blue-50 text-blue-700 text-xs font-medium"
+            : "py-1.5 px-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-medium";
+        document.getElementById("btnPayMethodKHQR").className =
+          m === "khqr"
+            ? "py-1.5 px-2 rounded-lg border border-khmerRed bg-red-50 text-khmerRed text-xs font-medium"
+            : "py-1.5 px-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-medium";
+        document
+          .getElementById("cashTenderSection")
+          .classList.toggle("hidden", m !== "cash");
+        document
+          .getElementById("khqrPromptSection")
+          .classList.toggle("hidden", m === "cash");
+      }
+      function calculateChange() {
+        const total = appState.cart.reduce((s, i) => s + i.price * i.qty, 0);
+        const cur = document.getElementById("tenderCurrency").value;
+        const amt =
+          parseFloat(document.getElementById("tenderAmountInput").value) || 0;
+        const usd = cur === "KHR" ? amt / appState.exchangeRate : amt;
+        const chg = Math.max(0, usd - total);
+        document.getElementById("posChangeUSD").innerText = formatUSD(chg);
+        document.getElementById("posChangeKHR").innerText = formatKHR(chg);
+      }
+      function handleBarcodeEnter(e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const code = e.target.value.trim();
+          const p = appState.products.find(
+            (x) =>
+              x.barcode === code || x.sku.toLowerCase() === code.toLowerCase(),
+          );
+          if (p) {
+            addToCart(p.id);
+            e.target.value = "";
+          } else showToast("Item not found", "alert-circle");
+        }
+      }
+      function openAddProductModal() {
+        document.getElementById("prodEditId").value = "";
+        document.getElementById("productForm").reset();
+        document.getElementById("productModal").classList.remove("hidden");
+      }
+      function openEditProductModal(id) {
+        const p = appState.products.find((x) => x.id === id);
+        if (!p) return;
+        document.getElementById("prodEditId").value = p.id;
+        document.getElementById("prodName").value = p.name;
+        document.getElementById("prodBarcode").value = p.barcode;
+        document.getElementById("prodSku").value = p.sku;
+        document.getElementById("prodCategory").value = p.category;
+        document.getElementById("prodCost").value = p.cost;
+        document.getElementById("prodPrice").value = p.price;
+        document.getElementById("prodStock").value = p.stock;
+        document.getElementById("prodMinStock").value = p.minStock;
+        document.getElementById("productModal").classList.remove("hidden");
+      }
+      function closeProductModal() {
+        document.getElementById("productModal").classList.add("hidden");
+      }
+      function openReceiveStockModal() {
+        if (appState.products.length)
+          openAdjustModalFor(appState.products[0].id);
+      }
+      function openAdjustModalFor(id) {
+        const p = appState.products.find((x) => x.id === id);
+        if (!p) return;
+        document.getElementById("adjustProdId").value = p.id;
+        document.getElementById("adjustProdName").innerText = p.name;
+        document.getElementById("adjustCurrentStock").innerText = p.stock;
+        document.getElementById("stockAdjustModal").classList.remove("hidden");
+      }
+      function closeAdjustModal() {
+        document.getElementById("stockAdjustModal").classList.add("hidden");
+      }
+      function showReceiptModal(s) {
+        document.getElementById("rcptId").innerText = s.id;
+        document.getElementById("rcptTime").innerText = new Date(
+          s.timestamp,
+        ).toLocaleTimeString();
+        document.getElementById("rcptItemsContainer").innerHTML = s.items
+          .map(
+            (i) => `
+          <div class="flex justify-between py-1 border-b border-dashed border-slate-200">
+            <span>${i.name} × ${i.qty}</span>
+            <span>${formatUSD(i.price * i.qty)}</span>
+          </div>
+        `,
+          )
+          .join("");
+        document.getElementById("rcptTotalUSD").innerText = formatUSD(
+          s.totalUSD,
+        );
+        document.getElementById("rcptTotalKHR").innerText = formatKHR(
+          s.totalUSD,
+        );
+        document.getElementById("rcptTendered").innerText = formatUSD(
+          s.tenderedUSD,
+        );
+        document.getElementById("rcptChange").innerText = formatUSD(
+          s.changeUSD,
+        );
+        document.getElementById("receiptModal").classList.remove("hidden");
+      }
+      function closeReceiptModal() {
+        document.getElementById("receiptModal").classList.add("hidden");
+      }
+      function formatUSD(a) {
+        return "$" + Number(a || 0).toFixed(2);
+      }
+      function formatKHR(u) {
+        return (
+          Math.round(Number(u || 0) * appState.exchangeRate).toLocaleString() +
+          " ៛"
+        );
+      }
+      function generateRandomBarcode() {
+        document.getElementById("prodBarcode").value =
+          "885" + Math.floor(1000000000 + Math.random() * 9000000000);
+      }
+      function navigateTo(id) {
+        document
+          .querySelectorAll(".view-panel")
+          .forEach((el) => el.classList.add("hidden"));
+        document.getElementById("view-" + id)?.classList.remove("hidden");
+        document
+          .querySelectorAll(".nav-item")
+          .forEach((btn) =>
+            btn.classList.replace("bg-blue-600", "text-slate-300"),
+          );
+        document
+          .getElementById("nav-" + id)
+          ?.classList.replace("text-slate-300", "bg-blue-600");
+        if (id === "reports") {
+          loadSalesData();
+          loadDailySummaryReport();
+        }
+      }
+      function setLanguage(lang) {
+        appState.language = lang;
+        const str = TRANSLATIONS[lang];
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const k = el.getAttribute("data-i18n");
+          if (str[k]) el.innerText = str[k];
+        });
+      }
+      function showToast(msg, icon = "info") {
+        const box = document.getElementById("toastBox");
+        document.getElementById("toastMsg").innerText = msg;
+        box.classList.remove("translate-y-20", "opacity-0");
+        setTimeout(
+          () => box.classList.add("translate-y-20", "opacity-0"),
+          3000,
+        );
+      }
+
+      /* Settings inputs & persistence */
+      function loadSettingsInputs() {
+        const nameEl = document.getElementById("settingShopName");
+        const rateEl = document.getElementById("settingExchangeRate");
+        const addrEl = document.getElementById("settingShopAddress");
+        const bakongEl = document.getElementById("settingBakongId");
+        if (nameEl) nameEl.value = appState.shopProfile.name || "";
+        if (rateEl) rateEl.value = appState.exchangeRate || 4100;
+        if (addrEl) addrEl.value = appState.shopProfile.address || "";
+        if (bakongEl) bakongEl.value = appState.shopProfile.bakongId || "";
+      }
+
+      function saveSettings() {
+        const name = document.getElementById("settingShopName").value.trim();
+        const rate = parseFloat(document.getElementById("settingExchangeRate").value) || 4100;
+        const address = document.getElementById("settingShopAddress").value.trim();
+        const bakongId = document.getElementById("settingBakongId").value.trim();
+
+        appState.shopProfile.name = name || "ShopFlow KH";
+        appState.shopProfile.address = address;
+        appState.shopProfile.bakongId = bakongId;
+        appState.exchangeRate = rate;
+
+        localStorage.setItem("shopflow_shop", JSON.stringify(appState.shopProfile));
+        localStorage.setItem("shopflow_rate", rate.toString());
+
+        document.getElementById("sideShopName").innerText = appState.shopProfile.name;
+        document.getElementById("navExchangeRate").innerText = appState.exchangeRate.toLocaleString();
+        renderPosProducts();
+        showToast("Settings updated successfully!", "check");
+      }
+
+      /* Barcode Scanner Functions */
+      function startScanner() {
+        if (!html5QrScanner) {
+          html5QrScanner = new Html5Qrcode("reader");
+        }
+        const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+        html5QrScanner.start(
+          { facingMode: "environment" },
+          config,
+          (decodedText) => {
+            document.getElementById("manualScannerInput").value = decodedText;
+            handleSimulatedScan();
+            stopScanner();
+          },
+          (errorMessage) => {}
+        ).then(() => {
+          document.getElementById("btnStartCamera").classList.add("hidden");
+          document.getElementById("btnStopCamera").classList.remove("hidden");
+          document.getElementById("laserLine")?.classList.remove("hidden");
+        }).catch((err) => {
+          showToast("Camera access failed: " + err, "alert-circle");
+        });
+      }
+
+      function stopScanner() {
+        if (html5QrScanner) {
+          html5QrScanner.stop().then(() => {
+            document.getElementById("btnStartCamera").classList.remove("hidden");
+            document.getElementById("btnStopCamera").classList.add("hidden");
+            document.getElementById("laserLine")?.classList.add("hidden");
+          }).catch(() => {});
+        }
+      }
+
+      /* Export Sales to CSV */
+      function exportSalesToCSV() {
+        if (!appState.sales || !appState.sales.length) {
+          showToast("No sales to export", "alert-circle");
+          return;
+        }
+        let csv = "Receipt Code,Date,Payment Method,Total USD,Total KHR\n";
+        appState.sales.forEach(s => {
+          csv += `"${s.id}","${s.timestamp}","${s.paymentMethod}",${s.totalUSD},${s.totalKHR}\n`;
+        });
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `sales-report-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+      }
+
+      /* ================= BARCODE SCANNER HELPERS ================= */
+      function handleSimulatedScan() {
+        const input = document.getElementById("manualScannerInput");
+        const code = input ? input.value.trim() : "";
+        if (!code) {
+          showToast("សូមបញ្ចូលលេខបាកូដជាមុនសិន!", "alert-circle");
+          return;
+        }
+
+        const prod = appState.products.find(
+          (p) =>
+            p.barcode === code ||
+            (p.sku && p.sku.toLowerCase() === code.toLowerCase()),
+        );
+
+        const resultBox = document.getElementById("scannedProductResult");
+
+        if (prod) {
+          appState.lastScannedProduct = prod;
+          document.getElementById("scannedName").innerText = prod.name;
+          document.getElementById("scannedBarcode").innerText = prod.barcode;
+          document.getElementById("scannedStock").innerText = prod.stock;
+          document.getElementById("scannedPrice").innerText = formatUSD(
+            prod.price,
+          );
+          if (resultBox) resultBox.classList.remove("hidden");
+          showToast(`បានស្វែងរកឃើញ៖ ${prod.name}`, "check");
+        } else {
+          if (resultBox) resultBox.classList.add("hidden");
+          showToast(`រកមិនឃើញទំនិញដែលមានបាកូដ "${code}" ទេ`, "alert-triangle");
+        }
+      }
+
+      function addScannedToCart() {
+        if (appState.lastScannedProduct) {
+          addToCart(appState.lastScannedProduct.id);
+          navigateTo("pos");
+          showToast(
+            `បានបន្ថែម ${appState.lastScannedProduct.name} ទៅកាន់កន្ត្រក`,
+            "check",
+          );
+        }
+      }
+    </script>
+  </body>
+</html>
